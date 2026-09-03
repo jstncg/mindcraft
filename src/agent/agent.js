@@ -11,6 +11,7 @@ import { NPCContoller } from './npc/controller.js';
 import { MemoryBank } from './memory_bank.js';
 import { SelfPrompter } from './self_prompter.js';
 import { nextNudge } from './nudge.js';
+import * as lessons from './lessons.js';
 import convoManager from './conversation.js';
 import { handleTranslation, handleEnglishTranslation } from '../utils/translator.js';
 import { addBrowserViewer } from './vision/browser_viewer.js';
@@ -279,6 +280,13 @@ export class Agent {
         await this.checkTaskDone();
         if (!source || !message) {
             console.warn('Received empty message from', source);
+            return false;
+        }
+
+        // civ: lessons spread. Anyone in earshot of a LESSON: shout keeps it.
+        const heard = message.match(/^(?:\w+: )?LESSON: (.+)$/);
+        if (heard && source !== this.name && source !== 'system') {
+            lessons.add(this.name, heard[1], source);
             return false;
         }
 

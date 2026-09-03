@@ -1,6 +1,7 @@
 import * as skills from '../library/skills.js';
 import settings from '../settings.js';
 import convoManager from '../conversation.js';
+import * as lessons from '../lessons.js';
 
 
 function runAsAction (actionFn, resume = false, timeout = -1) {
@@ -379,6 +380,18 @@ export const actionsList = [
             else {
                 agent.self_prompter.start(prompt);
             }
+        }
+    },
+    {
+        name: '!lesson',
+        description: 'Write down something you worked out about how this world works, so you never relearn it. It is shouted to everyone in earshot and they write it down too.',
+        params: {
+            'text': { type: 'string', description: 'The lesson, one sentence. State the fact, not the story.' },
+        },
+        perform: async function (agent, text) {
+            if (!lessons.add(agent.name, text)) return 'You already knew that.';
+            agent.bot.chat(`LESSON: ${text}`);
+            return `Learned: ${text}`;
         }
     },
     {

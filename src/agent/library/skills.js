@@ -988,11 +988,24 @@ export async function consume(bot, itemName="") {
         log(bot, `You do not have any ${name} to eat.`);
         return false;
     }
+    // civ: report what eating actually bought you, and the better option, at the
+    // moment it is relevant. Bots ate raw meat all sim because nothing told them.
+    const before = bot.food;
     await bot.equip(item, 'hand');
     await bot.consume();
-    log(bot, `Consumed ${item.name}.`);
+    const gained = bot.food - before;
+    const cooked = COOKED_FORM[item.name];
+    log(bot, `Consumed ${item.name}. Hunger +${gained} (now ${bot.food}/20).`
+        + (cooked ? ` Smelting it into ${cooked} first would have restored far more - use !smeltItem.` : ''));
     return true;
 }
+
+// civ: raw food and what it becomes. Used to teach at the point of eating.
+const COOKED_FORM = {
+    beef: 'cooked_beef', porkchop: 'cooked_porkchop', mutton: 'cooked_mutton',
+    chicken: 'cooked_chicken', rabbit: 'cooked_rabbit', cod: 'cooked_cod',
+    salmon: 'cooked_salmon', potato: 'baked_potato',
+};
 
 
 export async function giveToPlayer(bot, itemType, username, num=1) {
