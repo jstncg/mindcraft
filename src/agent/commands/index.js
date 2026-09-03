@@ -110,8 +110,8 @@ export function parseCommandMessage(message) {
     const params = commandParams(command);
     const paramNames = commandParamNames(command);
     
-    if (args.length !== params.length)
-        return `Command ${command.name} was given ${args.length} args, but requires ${params.length} args.`;
+    if (args.length < minParams(command) || args.length > params.length)
+        return `Command ${command.name} was given ${args.length} args, but takes ${minParams(command)} to ${params.length}.`;
 
     
     for (let i = 0; i < args.length; i++) {
@@ -209,6 +209,13 @@ function numParams(command) {
     return commandParams(command).length;
 }
 
+// civ: trailing params marked optional may be omitted. Bots called
+// !goToCoordinates with three args 16 times in one sim and were told off for it
+// every time, when a sensible default was the obvious answer.
+function minParams(command) {
+    return commandParams(command).filter(p => !p.optional).length;
+}
+
 export async function executeCommand(agent, message) {
     let parsed = parseCommandMessage(message);
     if (typeof parsed === 'string')
@@ -220,8 +227,8 @@ export async function executeCommand(agent, message) {
         if (parsed.args) {
             numArgs = parsed.args.length;
         }
-        if (numArgs !== numParams(command))
-            return `Command ${command.name} was given ${numArgs} args, but requires ${numParams(command)} args.`;
+        if (numArgs < minParams(command) || numArgs > numParams(command))
+            return `Command ${command.name} was given ${numArgs} args, but takes ${minParams(command)} to ${numParams(command)}.`;
         else {
             const result = await command.perform(agent, ...parsed.args);
             return result;

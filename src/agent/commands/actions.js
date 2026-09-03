@@ -125,9 +125,10 @@ export const actionsList = [
             'x': {type: 'float', description: 'The x coordinate.', domain: [-Infinity, Infinity]},
             'y': {type: 'float', description: 'The y coordinate.', domain: [-64, 320]},
             'z': {type: 'float', description: 'The z coordinate.', domain: [-Infinity, Infinity]},
-            'closeness': {type: 'float', description: 'How close to get to the location.', domain: [0, Infinity]}
+            'closeness': {type: 'float', description: 'How close to get to the location. Optional, defaults to 2.', domain: [0, Infinity], optional: true}
         },
         perform: runAsAction(async (agent, x, y, z, closeness) => {
+            if (closeness == null) closeness = 2; // civ: bots kept calling this with 3 args
             await skills.goToPosition(agent.bot, x, y, z, closeness);
         })
     },

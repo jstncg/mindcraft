@@ -1,5 +1,6 @@
 import * as world from './world.js';
-import { goToPosition } from './skills.js';
+import { goToGoal } from './skills.js';
+import pf from 'mineflayer-pathfinder';
 
 // civ: bots never left spawn. Every search command is radius-based, and a radius
 // is a lie past the simulation distance - nothing spawns out there until someone
@@ -48,7 +49,16 @@ export async function explore(bot, direction, distance = 256, log = () => {}) {
         if (bot.interrupt_code) break;
         const x = Math.round(start.x + dir[0] * LEG * i);
         const z = Math.round(start.z + dir[1] * LEG * i);
-        if (!await goToPosition(bot, x, null, z, 4)) {
+        // civ: this passed y as null to goToPosition, which rejects a null y on its
+        // first line and returns false - so every leg of every !explore ever run failed
+        // instantly, 129 times in sim 8 alone, and the bots correctly reported that the
+        // route failed. That is where sim 7's 'barrier' came from, and Nina drowned
+        // going to check it. Travel is an XZ problem; the ground decides the height.
+        // goToGoal throws on failure rather than returning false
+        let reached = false;
+        try { reached = await goToGoal(bot, new pf.goals.GoalNearXZ(x, z, 6)); }
+        catch (err) { reached = false; }
+        if (!reached) {
             // civ: this used to say 'could not get past', and ten bots turned a lake into
             // a barrier and shouted it to each other as fact. One of them drowned going to
             // look. Say what actually happened - the route failed - and claim nothing about

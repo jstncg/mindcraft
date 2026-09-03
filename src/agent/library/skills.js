@@ -1070,7 +1070,7 @@ export async function giveToPlayer(bot, itemType, username, num=1) {
     }
     let player = bot.players[username]?.entity;
     if (!player) {
-        log(bot, `Could not find ${username}.`);
+        log(bot, `${username} is not within sight (about 160 blocks). They exist, you just cannot see them from here - move toward where you last saw them, or shout with ALL:.`);
         return false;
     }
     await goToPlayer(bot, username, 3);
@@ -1389,7 +1389,7 @@ export async function goToPlayer(bot, username, distance=3) {
     bot.modes.pause('cowardice');
     let player = bot.players[username].entity
     if (!player) {
-        log(bot, `Could not find ${username}.`);
+        log(bot, `${username} is not within sight (about 160 blocks). They exist, you just cannot see them from here - move toward where you last saw them, or shout with ALL:.`);
         return false;
     }
 
