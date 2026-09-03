@@ -4,7 +4,7 @@ import fs from 'fs';
 // append-only - the summarizer rewrites memory every few minutes, so a lesson
 // learned at minute 5 was gone by minute 20 and nothing ever accumulated.
 // Lessons spread: !lesson shouts, and every bot in earshot writes it down.
-const MAX = 10;
+const MAX = 25;
 const file = name => `./bots/${name}/lessons.json`;
 
 export function load(name) {
@@ -46,10 +46,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     assert(add(n, '   ') === false, 'blank rejected');
     assert(add(n, 'Cole steals from chests.', 'Ren') === true, 'second lesson');
     assert(format(n).includes('(from Ren)'), 'attribution shown');
-    for (let i = 0; i < 12; i++) add(n, `filler lesson ${i}`);
+    for (let i = 0; i < 30; i++) add(n, `filler lesson ${i}`);
     assert(load(n).length === MAX, `capped at ${MAX}`);
     assert(!format(n).includes('Cooked mutton'), 'oldest lesson evicted first');
-    assert(load(n)[0].text === 'filler lesson 2', 'FIFO eviction');
+    assert(load(n)[0].text === 'filler lesson 5', 'FIFO eviction');
 
     fs.rmSync(`./bots/${n}`, { recursive: true, force: true });
     console.log('lessons ok');

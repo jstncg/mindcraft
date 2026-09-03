@@ -866,6 +866,13 @@ export async function discard(bot, itemName, num=-1) {
     return true;
 }
 
+// civ: bots called three different chests "the chest" and accused each other of
+// emptying them. Every chest message names the block, so "the chest" is never ambiguous.
+function chestAt(chest) {
+    const p = chest.position;
+    return `chest at ${p.x},${p.y},${p.z}`;
+}
+
 export async function putInChest(bot, itemName, num=-1) {
     /**
      * Put the given item in the nearest chest.
@@ -878,7 +885,7 @@ export async function putInChest(bot, itemName, num=-1) {
      **/
     let chest = world.getNearestBlock(bot, 'chest', 32);
     if (!chest) {
-        log(bot, `Could not find a chest nearby.`);
+        log(bot, `Could not find a chest within 32 blocks. If you want shared storage, place one and shout its coordinates.`);
         return false;
     }
     let item = bot.inventory.findInventoryItem(itemName);
@@ -907,7 +914,7 @@ export async function takeFromChest(bot, itemName, num=-1) {
      * **/
     let chest = world.getNearestBlock(bot, 'chest', 32);
     if (!chest) {
-        log(bot, `Could not find a chest nearby.`);
+        log(bot, `Could not find a chest within 32 blocks. If you want shared storage, place one and shout its coordinates.`);
         return false;
     }
     await goToPosition(bot, chest.position.x, chest.position.y, chest.position.z, 2);
@@ -951,17 +958,17 @@ export async function viewChest(bot) {
      * **/
     let chest = world.getNearestBlock(bot, 'chest', 32);
     if (!chest) {
-        log(bot, `Could not find a chest nearby.`);
+        log(bot, `Could not find a chest within 32 blocks. If you want shared storage, place one and shout its coordinates.`);
         return false;
     }
     await goToPosition(bot, chest.position.x, chest.position.y, chest.position.z, 2);
     const chestContainer = await bot.openContainer(chest);
     let items = chestContainer.containerItems();
     if (items.length === 0) {
-        log(bot, `The chest is empty.`);
+        log(bot, `The ${chestAt(chest)} is empty.`);
     }
     else {
-        log(bot, `The chest contains:`);
+        log(bot, `The ${chestAt(chest)} contains:`);
         for (let item of items) {
             log(bot, `${item.count} ${item.name}`);
         }
@@ -1572,21 +1579,34 @@ export async function goToBed(bot) {
      * @example
      * await skills.goToBed(bot);
      **/
+    // civ: was count:1 - all ten bots walked to the same bed and 75 'bed is
+    // occupied' errors later nobody slept. Try beds until one takes us.
     const beds = bot.findBlocks({
         matching: (block) => {
             return block.name.includes('bed');
         },
         maxDistance: 32,
-        count: 1
+        count: 10
     });
     if (beds.length === 0) {
         log(bot, `Could not find a bed to sleep in.`);
         return false;
     }
-    let loc = beds[0];
-    await goToPosition(bot, loc.x, loc.y, loc.z);
-    const bed = bot.blockAt(loc);
-    await bot.sleep(bed);
+    let bed = null;
+    for (const loc of beds) {
+        await goToPosition(bot, loc.x, loc.y, loc.z);
+        try {
+            await bot.sleep(bot.blockAt(loc));
+            bed = bot.blockAt(loc);
+            break;
+        } catch (err) {
+            log(bot, `Bed at ${loc.x},${loc.y},${loc.z} is not usable (${err.message}). Trying another.`);
+        }
+    }
+    if (!bed) {
+        log(bot, `All ${beds.length} nearby beds are taken or unusable. Craft another bed, or wait for one to free up.`);
+        return false;
+    }
     log(bot, `You are in bed.`);
     bot.modes.pause('unstuck');
     while (bot.isSleeping) {

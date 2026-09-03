@@ -374,6 +374,10 @@ export const actionsList = [
             'selfPrompt': { type: 'string', description: 'The goal prompt.' },
         },
         perform: async function (agent, prompt) {
+            // civ: Ori set the same goal 34 times, Kai 25. Re-declaring is not progress.
+            const key = t => String(t).replace(/[^a-z0-9]/gi, '').toLowerCase();
+            if (!agent.self_prompter.isStopped() && key(agent.self_prompter.prompt) === key(prompt))
+                return 'That is already your goal. Stop restating it and take the next concrete action.';
             if (convoManager.inConversation()) {
                 agent.self_prompter.setPromptPaused(prompt);
             }
