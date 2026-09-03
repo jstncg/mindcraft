@@ -386,6 +386,7 @@ export const actionsList = [
         description: 'Call when you have accomplished your goal. It will stop self-prompting and the current action. ',
         perform: async function (agent) {
             agent.self_prompter.stop();
+            agent.self_prompter.prompt = ''; // goal is done, not stalled - do not let the idle nudge resume it
             return 'Self-prompting stopped.';
         }
     },

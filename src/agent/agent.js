@@ -10,6 +10,7 @@ import { ActionManager } from './action_manager.js';
 import { NPCContoller } from './npc/controller.js';
 import { MemoryBank } from './memory_bank.js';
 import { SelfPrompter } from './self_prompter.js';
+import { nextNudge } from './nudge.js';
 import convoManager from './conversation.js';
 import { handleTranslation, handleEnglishTranslation } from '../utils/translator.js';
 import { addBrowserViewer } from './vision/browser_viewer.js';
@@ -202,9 +203,11 @@ export class Agent {
                 .filter(p => p.entity && p.username !== this.name && convoManager.isOtherAgent(p.username) && p.entity.position.distanceTo(me.position) <= 32)
                 .map(p => p.username + (p.entity.heldItem ? ' holding ' + p.entity.heldItem.name : ''));
             if (seen.length) this.history.add('system', `You see nearby: ${seen.join(', ')}.`);
-            // civ: nudge a goalless bot after 2 min idle. names no task.
-            this._idleMin = this.self_prompter.isStopped() ? (this._idleMin || 0) + 1 : 0;
-            if (this._idleMin >= 2) { this.handleMessage('system', 'You have no goal. Decide what matters and set one with !goal.'); this._idleMin = 0; }
+            // civ: after 2 min idle, resume a stalled goal or ask a goalless bot to pick one.
+            const n = nextNudge({ stopped: this.self_prompter.isStopped(), prompt: this.self_prompter.prompt, idleMin: this._idleMin, resumes: this._resumes });
+            this._idleMin = n.idleMin; this._resumes = n.resumes;
+            if (n.act === 'resume') this.self_prompter.start();
+            else if (n.act === 'ask') this.handleMessage('system', 'You have no goal. Decide what matters and set one with !goal.');
             fs.appendFileSync('./bots/positions.jsonl', JSON.stringify({t: Date.now(), name: this.name, x: Math.round(me.position.x), y: Math.round(me.position.y), z: Math.round(me.position.z), hp: this.bot.health, food: this.bot.food, seen}) + '\n');
         }, 60000);
 
