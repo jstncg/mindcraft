@@ -354,7 +354,7 @@
             },
             {
                 "role": "assistant",
-                "content": "Two hundred blocks of nothing. At least the others need not waste the walk. !lesson(\"East of spawn is empty for 250 blocks. No animals, no water. Try another direction.\")"
+                "content": "Two hundred blocks of nothing but trees. Worth saying so. !lesson(\"Walked east from spawn to -80,80. Forest all the way, no animals seen.\")"
             }
         ],
         [

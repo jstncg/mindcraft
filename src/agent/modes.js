@@ -29,6 +29,7 @@ const modes_list = [
         on: true,
         active: false,
         fall_blocks: ['sand', 'gravel', 'concrete_powder'], // includes matching substrings like 'sandstone' and 'red_sand'
+        swimming: false,
         update: async function (agent) {
             const bot = agent.bot;
             let block = bot.blockAt(bot.entity.position);
@@ -36,10 +37,16 @@ const modes_list = [
             if (!block) block = {name: 'air'}; // hacky fix when blocks are not loaded
             if (!blockAbove) blockAbove = {name: 'air'};
             if (blockAbove.name === 'water') {
-                // does not call execute so does not interrupt other actions
-                if (!bot.pathfinder.goal) {
-                    bot.setControlState('jump', true);
-                }
+                // civ: this used to swim up only when !bot.pathfinder.goal - so a bot that
+                // walked into water while going somewhere never swam, it just sank. Nina
+                // drowned mid-!explore. Holding jump underwater is the whole of swimming;
+                // do it whenever our head is under, pathfinding or not.
+                bot.setControlState('jump', true);
+                this.swimming = true;
+            }
+            else if (this.swimming) {
+                bot.setControlState('jump', false);
+                this.swimming = false;
             }
             else if (this.fall_blocks.some(name => blockAbove.name.includes(name))) {
                 execute(this, agent, async () => {

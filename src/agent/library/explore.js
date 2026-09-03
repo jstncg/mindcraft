@@ -49,7 +49,11 @@ export async function explore(bot, direction, distance = 256, log = () => {}) {
         const x = Math.round(start.x + dir[0] * LEG * i);
         const z = Math.round(start.z + dir[1] * LEG * i);
         if (!await goToPosition(bot, x, null, z, 4)) {
-            log(bot, `Could not get past x=${x} z=${z} heading ${direction}. Stopped ${i - 1} legs out.`);
+            // civ: this used to say 'could not get past', and ten bots turned a lake into
+            // a barrier and shouted it to each other as fact. One of them drowned going to
+            // look. Say what actually happened - the route failed - and claim nothing about
+            // the world.
+            log(bot, `Could not find a route ${direction} from x=${x} z=${z} - water, a cliff or a drop, not the edge of anything. Stopped ${i - 1} legs out. Try a different direction or go around.`);
             break;
         }
         const here = bot.entity.position;
