@@ -500,10 +500,8 @@ export class Agent {
                 }
             }
             prev_health = this.bot.health;
-        });
-        // civ: below 6 you stop regenerating and start starving. Warn once per crossing,
-        // while there is still time to do something other than panic.
-        this.bot.on('health', () => {
+            // civ: below 6 you stop regenerating and start starving. Warn once per
+            // crossing, while there is still time to walk rather than panic.
             const hungry = this.bot.food < 6;
             if (hungry && !this._wasHungry)
                 this.history.add('system', `Your hunger is ${this.bot.food}/20. Below 6 you stop healing and begin to starve. Eat now, or go and get food while you still can.`);

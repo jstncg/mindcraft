@@ -978,6 +978,13 @@ export async function viewChest(bot) {
     return true;
 }
 
+// civ: raw food and what it becomes. Used to teach at the point of eating.
+const COOKED_FORM = {
+    beef: 'cooked_beef', porkchop: 'cooked_porkchop', mutton: 'cooked_mutton',
+    chicken: 'cooked_chicken', rabbit: 'cooked_rabbit', cod: 'cooked_cod',
+    salmon: 'cooked_salmon', potato: 'baked_potato',
+};
+
 export async function consume(bot, itemName="") {
     /**
      * Eat/drink the given item.
@@ -1008,12 +1015,6 @@ export async function consume(bot, itemName="") {
     return true;
 }
 
-// civ: raw food and what it becomes. Used to teach at the point of eating.
-const COOKED_FORM = {
-    beef: 'cooked_beef', porkchop: 'cooked_porkchop', mutton: 'cooked_mutton',
-    chicken: 'cooked_chicken', rabbit: 'cooked_rabbit', cod: 'cooked_cod',
-    salmon: 'cooked_salmon', potato: 'baked_potato',
-};
 
 
 // civ: the Minecraft server console, same channel run.sh/stop.sh already use.

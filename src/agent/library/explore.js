@@ -1,4 +1,5 @@
 import * as world from './world.js';
+import { goToPosition } from './skills.js';
 
 // civ: bots never left spawn. Every search command is radius-based, and a radius
 // is a lie past the simulation distance - nothing spawns out there until someone
@@ -47,8 +48,7 @@ export async function explore(bot, direction, distance = 256, log = () => {}) {
         if (bot.interrupt_code) break;
         const x = Math.round(start.x + dir[0] * LEG * i);
         const z = Math.round(start.z + dir[1] * LEG * i);
-        const skills = await import('./skills.js');
-        if (!await skills.goToPosition(bot, x, null, z, 4)) {
+        if (!await goToPosition(bot, x, null, z, 4)) {
             log(bot, `Could not get past x=${x} z=${z} heading ${direction}. Stopped ${i - 1} legs out.`);
             break;
         }

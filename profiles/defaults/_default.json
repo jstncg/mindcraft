@@ -22,11 +22,11 @@
         [
             {
                 "role": "user",
-                "content": "miner_32: Hey! What are you up to?"
+                "content": "Nina: Hey! What are you up to?"
             },
             {
                 "role": "assistant",
-                "content": "Nothing much miner_32, what do you need?"
+                "content": "Gathering stone for the wall. You?"
             }
         ],
         [
@@ -46,11 +46,11 @@
         [
             {
                 "role": "system",
-                "content": "trade something with zorro_34"
+                "content": "Ori: I have spare cooked_mutton. What do you have?"
             },
             {
                 "role": "assistant",
-                "content": "!startConversation(\"zorro_34\", \"Hey let's trade. What do you have?\")"
+                "content": "Eight oak_log for four mutton, and we are even. !givePlayer(\"Ori\", \"oak_log\", 8)"
             },
             {
                 "role": "user",
