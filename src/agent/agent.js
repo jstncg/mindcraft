@@ -194,8 +194,13 @@ export class Agent {
                 // civ: this is where lessons actually spread. The matcher used to sit in
                 // handleMessage, which shouts never reach, so propagation was always 0.
                 if (/is gone for good/.test(message)) this.reflect(`Someone just died: ${message}`);
+                // civ: a correction has to travel the same way the claim did, or the
+                // false consensus is one-way and only a death can end it.
+                const doubted = message.match(/^(?:ALL: ?)?DISPUTE: (.+?) -- (.+)$/);
+                if (doubted && lessons.dispute(this.name, doubted[1], doubted[2], username))
+                    this.history.add('system', `${username} says that is wrong: ${doubted[2]}`);
                 const heard = message.match(/^(?:ALL: ?)?LESSON: (.+)$/);
-                if (heard && lessons.add(this.name, heard[1], username, convoManager.getInGameAgents()))
+                if (heard && lessons.add(this.name, heard[1], username, convoManager.getInGameAgents(), this.bot.entity?.position))
                     this.history.add('system', `You will remember that ${username} said so.`);
             }
         });
@@ -287,6 +292,7 @@ export class Agent {
             const resp = await this.prompter.promptCritic(claim, trail);
             if (!resp) return { ok: true, why: '' }; // no critic configured, do not block
             const ok = /^\s*SUPPORTED/i.test(resp);
+            console.log(`CRITIC ${ok ? 'ACCEPT' : 'REJECT'} [${this.name}] ${claim} :: ${resp.slice(0, 90)}`);
             return { ok, why: resp.replace(/^\s*\w+\s*-?\s*/, '').trim().slice(0, 80) };
         } catch (err) {
             console.warn('critic failed:', err.message);
@@ -308,10 +314,10 @@ export class Agent {
             for (const line of resp.split('\n').map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(Boolean).slice(0, 2)) {
                 const verdict = await this.vet(line);
                 if (!verdict.ok) {
-                    console.log(`${this.name} rejected own lesson: ${line} (${verdict.why})`);
+                    console.log(`CRITIC dropped reflection [${this.name}]: ${line}`);
                     continue;
                 }
-                if (lessons.add(this.name, line, null, convoManager.getInGameAgents())) {
+                if (lessons.add(this.name, line, null, convoManager.getInGameAgents(), this.bot.entity?.position)) {
                     this.history.add('system', `You worked something out: ${line}`);
                     this.bot.chat(`ALL: LESSON: ${line}`);
                 }

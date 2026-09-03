@@ -166,7 +166,7 @@ export class Prompter {
         if (prompt.includes('$EXAMPLES') && examples !== null)
             prompt = prompt.replaceAll('$EXAMPLES', await examples.createExampleMessage(messages));
         if (prompt.includes('$LESSONS'))
-            prompt = prompt.replaceAll('$LESSONS', lessons.format(this.agent.name));
+            prompt = prompt.replaceAll('$LESSONS', lessons.format(this.agent.name, this.agent.bot?.entity?.position));
         if (prompt.includes('$MEMORY'))
             prompt = prompt.replaceAll('$MEMORY', this.agent.history.memory);
         if (prompt.includes('$TO_SUMMARIZE'))

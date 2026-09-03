@@ -408,9 +408,23 @@ export const actionsList = [
             const verdict = await agent.vet(text); // civ: same gate as reflection
             if (!verdict.ok)
                 return `Not so fast - what you did does not show that: ${verdict.why}. Say only what you saw, or go and check.`;
-            if (!lessons.add(agent.name, text, null, convoManager.getInGameAgents())) return 'You already knew that.';
+            if (!lessons.add(agent.name, text, null, convoManager.getInGameAgents(), agent.bot.entity?.position)) return 'You already knew that.';
             agent.bot.chat(`ALL: LESSON: ${text}`);
             return `Learned: ${text}`;
+        }
+    },
+    {
+        name: '!dispute',
+        description: 'Say that something you were told is wrong, because of what you have seen yourself. Marks it doubted for you and tells everyone in earshot.',
+        params: {
+            'claim': { type: 'string', description: 'The gist of what you were told.' },
+            'why': { type: 'string', description: 'What you saw that contradicts it. One sentence.' },
+        },
+        perform: async function (agent, claim, why) {
+            const hit = lessons.dispute(agent.name, claim, why, agent.name);
+            if (!hit) return 'You were never told anything like that, so there is nothing to dispute.';
+            agent.bot.chat(`ALL: DISPUTE: ${hit.text} -- ${why}`);
+            return `Marked doubted: ${hit.text}`;
         }
     },
     {
