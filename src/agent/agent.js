@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { History } from './history.js';
 import { Coder } from './coder.js';
 import { VisionInterpreter } from './vision/vision_interpreter.js';
@@ -182,10 +183,30 @@ export class Agent {
         this.bot.on('whisper', respondFunc);
         
         this.bot.on('chat', (username, message) => {
-            if (serverProxy.getNumOtherAgents() > 0) return;
-            // only respond to open chat messages when there are no other agents
-            respondFunc(username, message);
+            if (serverProxy.getNumOtherAgents() === 0) return respondFunc(username, message);
+            // civ: hear other bots speaking aloud within 32 blocks; reply on next cycle, not immediately
+            const e = this.bot.players[username]?.entity;
+            let shout = message.startsWith('ALL:'); // civ: 'ALL:' prefix is heard by everyone, else 32 blocks
+            if (convoManager.isOtherAgent(username) && (shout || (e && e.position.distanceTo(this.bot.entity.position) <= 32)))
+                this.history.add('system', `You hear ${username} ${shout ? 'shout to everyone' : 'say'}: ${message}`);
         });
+        // civ: pathfinder avoids water. every movement set goes through setMovements; default movements too.
+        const _setMov = this.bot.pathfinder.setMovements.bind(this.bot.pathfinder);
+        this.bot.pathfinder.setMovements = m => { m.liquidCost = 100; _setMov(m); };
+        if (this.bot.pathfinder.movements) this.bot.pathfinder.movements.liquidCost = 100;
+        this._lastShout = {};
+        // civ: sight + position log every 60s
+        setInterval(() => {
+            const me = this.bot.entity; if (!me) return;
+            const seen = Object.values(this.bot.players)
+                .filter(p => p.entity && p.username !== this.name && convoManager.isOtherAgent(p.username) && p.entity.position.distanceTo(me.position) <= 32)
+                .map(p => p.username + (p.entity.heldItem ? ' holding ' + p.entity.heldItem.name : ''));
+            if (seen.length) this.history.add('system', `You see nearby: ${seen.join(', ')}.`);
+            // civ: nudge a goalless bot after 2 min idle. names no task.
+            this._idleMin = this.self_prompter.isStopped() ? (this._idleMin || 0) + 1 : 0;
+            if (this._idleMin >= 2) { this.handleMessage('system', 'You have no goal. Decide what matters and set one with !goal.'); this._idleMin = 0; }
+            fs.appendFileSync('./bots/positions.jsonl', JSON.stringify({t: Date.now(), name: this.name, x: Math.round(me.position.x), y: Math.round(me.position.y), z: Math.round(me.position.z), hp: this.bot.health, food: this.bot.food, seen}) + '\n');
+        }, 60000);
 
         // Set up auto-eat
         this.bot.autoEat.options = {
@@ -362,6 +383,15 @@ export class Agent {
                 let execute_res = await executeCommand(this, res);
 
                 console.log('Agent executed:', command_name, 'and got:', execute_res);
+                // civ: action awareness. mark failures and repeated identical failures.
+                if (execute_res) {
+                    const failed = /invalid|fail|could not|couldn't|cannot|can't|no path|not found|timed out|unable|too far|don't have|do not have|not enough|no .* nearby/i.test(execute_res);
+                    const key = String(res).match(/![a-zA-Z]+\([^)]*\)/)?.[0] || command_name;
+                    this._cmdHist = (this._cmdHist || []).slice(-7); this._cmdHist.push({key, failed});
+                    const reps = this._cmdHist.filter(x => x.key === key && x.failed).length;
+                    if (failed && reps >= 2) execute_res += ` [ACTION AWARENESS: this exact action has now failed ${reps} times. Do not repeat it. Change the target, the place, the tool, or ask someone for help.]`;
+                    else if (failed) execute_res += ' [ACTION AWARENESS: that failed. Check the reason before retrying.]';
+                }
                 used_command = true;
 
                 if (execute_res)
@@ -475,6 +505,13 @@ export class Agent {
         this.bot.on('messagestr', async (message, _, jsonMsg) => {
             if (jsonMsg.translate && jsonMsg.translate.startsWith('death') && message.startsWith(this.name)) {
                 console.log('Agent died: ', message);
+                if (this.bot.time.day >= 1) { // civ: permadeath after the first world day
+                    this.bot.chat(`ALL: ${message}. ${this.name} is gone for good.`);
+                    await this.history.add('system', `You died: '${message}'. Death is permanent. Goodbye.`);
+                    this.history.save();
+                    setTimeout(() => this.cleanKill(`${this.name} died permanently: ${message}`), 3000);
+                    return;
+                }
                 let death_pos = this.bot.entity.position;
                 this.memory_bank.rememberPlace('last_death_position', death_pos.x, death_pos.y, death_pos.z);
                 let death_pos_text = null;
