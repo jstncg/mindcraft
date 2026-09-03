@@ -488,8 +488,26 @@ export class Agent {
             if (this.bot.health < prev_health) {
                 this.bot.lastDamageTime = Date.now();
                 this.bot.lastDamageTaken = prev_health - this.bot.health;
+                // civ: $STATS shows health and hunger as two unrelated numbers and never
+                // says one caused the other. Bots watched their HP fall for twenty minutes
+                // and had to re-derive why every single call. Say it once, when it happens.
+                const now = Date.now();
+                if (now - (this._hurtSaidAt || 0) > 30000) {
+                    this._hurtSaidAt = now;
+                    this.history.add('system', this.bot.food === 0
+                        ? `You are starving. You lost ${this.bot.lastDamageTaken.toFixed(0)} health because you have not eaten, and you will keep losing health until you do. You are at ${this.bot.health.toFixed(0)}/20.`
+                        : `You lost ${this.bot.lastDamageTaken.toFixed(0)} health and are at ${this.bot.health.toFixed(0)}/20. Work out what did that before it happens again.`);
+                }
             }
             prev_health = this.bot.health;
+        });
+        // civ: below 6 you stop regenerating and start starving. Warn once per crossing,
+        // while there is still time to do something other than panic.
+        this.bot.on('health', () => {
+            const hungry = this.bot.food < 6;
+            if (hungry && !this._wasHungry)
+                this.history.add('system', `Your hunger is ${this.bot.food}/20. Below 6 you stop healing and begin to starve. Eat now, or go and get food while you still can.`);
+            this._wasHungry = hungry;
         });
         // Logging callbacks
         this.bot.on('error' , (err) => {

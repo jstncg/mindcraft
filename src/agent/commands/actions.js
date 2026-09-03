@@ -2,6 +2,7 @@ import * as skills from '../library/skills.js';
 import settings from '../settings.js';
 import convoManager from '../conversation.js';
 import * as lessons from '../lessons.js';
+import { explore } from '../library/explore.js';
 
 
 function runAsAction (actionFn, resume = false, timeout = -1) {
@@ -385,6 +386,17 @@ export const actionsList = [
                 agent.self_prompter.start(prompt);
             }
         }
+    },
+    {
+        name: '!explore',
+        description: 'Travel a long way in one direction, looking around as you go. Use this when searching nearby has found nothing - the world beyond what you can see is not empty, you just have not walked there. Reports what is out there, including finding nothing.',
+        params: {
+            'direction': { type: 'string', description: 'north, south, east, west, or a diagonal like northeast.' },
+            'distance': { type: 'float', description: 'How far to go, in blocks.', domain: [64, 512] },
+        },
+        perform: runAsAction(async (agent, direction, distance) => {
+            await explore(agent.bot, direction, distance, skills.log);
+        })
     },
     {
         name: '!lesson',

@@ -336,6 +336,36 @@
                 "role": "assistant",
                 "content": "They can have the spawn camp. I am building my own place where nobody can reach my things. !goToCoordinates(-420, 75, 160, 2)"
             }
+        ],
+        [
+            {
+                "role": "user",
+                "content": "system: Could not find any cow in 64 blocks."
+            },
+            {
+                "role": "assistant",
+                "content": "Nothing alive within sight. The world does not end here, I just have not walked far enough. !explore(\"east\", 256)"
+            }
+        ],
+        [
+            {
+                "role": "user",
+                "content": "system: Went east as far as -80,80 and found nothing alive and nothing useful. That is worth recording with !lesson so nobody repeats this trip."
+            },
+            {
+                "role": "assistant",
+                "content": "Two hundred blocks of nothing. At least the others need not waste the walk. !lesson(\"East of spawn is empty for 250 blocks. No animals, no water. Try another direction.\")"
+            }
+        ],
+        [
+            {
+                "role": "user",
+                "content": "system: Your hunger is 5/20. Below 6 you stop healing and begin to starve."
+            },
+            {
+                "role": "assistant",
+                "content": "Still on my feet, so I go now rather than when I cannot. !explore(\"north\", 192)"
+            }
         ]
     ],
     "coding_examples": [
