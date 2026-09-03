@@ -101,12 +101,31 @@ export async function craftRecipe(bot, itemName, num=1) {
     const requiredIngredients = mc.ingredientsFromPrismarineRecipe(recipe); //Items required to use the recipe once.
     const craftLimit = mc.calculateLimitingResource(inventory, requiredIngredients);
     
-    await bot.craft(recipe, Math.min(craftLimit.num, num), craftingTable);
-    if(craftLimit.num<num) log(bot, `Not enough ${craftLimit.limitingResource} to craft ${num}, crafted ${craftLimit.num}. You now have ${world.getInventoryCounts(bot)[itemName]} ${itemName}.`);
-    else log(bot, `Successfully crafted ${itemName}, you now have ${world.getInventoryCounts(bot)[itemName]} ${itemName}.`);
+    // civ: bot.craft's result was never checked and the message said 'Successfully
+    // crafted' unconditionally. Nina crafted an iron_sword, was told she had it, and
+    // could not equip it seconds later - three times. Ten bots shared one real pickaxe
+    // across a sim while their own tools told them crafting was working. Count before,
+    // let the server confirm, count after, and report what actually happened.
+    const before = world.getInventoryCounts(bot)[itemName] ?? 0;
+    try {
+        await bot.craft(recipe, Math.min(craftLimit.num, num), craftingTable);
+    } catch (err) {
+        log(bot, `Crafting ${itemName} failed: ${err.message}. You still have your materials.`);
+        if (placedTable) await collectBlock(bot, 'crafting_table', 1);
+        return false;
+    }
+    await new Promise(r => setTimeout(r, 400)); // the server confirms the craft after the call returns
+    const made = (world.getInventoryCounts(bot)[itemName] ?? 0) - before;
+    // civ: only now is it safe to break the table - doing it first raced the craft
     if (placedTable) {
         await collectBlock(bot, 'crafting_table', 1);
     }
+    if (made <= 0) {
+        log(bot, `Crafting ${itemName} did not work - nothing arrived in your inventory. Stand next to a crafting table you placed, check you still have the materials, and try once more.`);
+        return false;
+    }
+    if (craftLimit.num < num) log(bot, `Not enough ${craftLimit.limitingResource} to craft ${num}, crafted ${made}. You now have ${world.getInventoryCounts(bot)[itemName]} ${itemName}.`);
+    else log(bot, `Crafted ${made} ${itemName}, you now have ${world.getInventoryCounts(bot)[itemName]}.`);
 
     //Equip any armor the bot may have crafted.
     //There is probablly a more efficient method than checking the entire inventory but this is all mineflayer-armor-manager provides. :P

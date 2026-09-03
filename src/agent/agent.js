@@ -452,7 +452,10 @@ export class Agent {
 
                 let execute_res = await executeCommand(this, res);
 
-                console.log('Agent executed:', command_name, 'and got:', execute_res);
+                // civ: this line had no bot name on it. Ten agents write to one log
+                // concurrently, so every claim about who did what was proximity
+                // inference against interleaved output - and wrong at least twice.
+                console.log(`[${this.name}] executed:`, command_name, 'and got:', execute_res);
                 this.recordStep(`${command_name} -> ${execute_res ?? 'no output'}`); // civ: trajectory for reflection
                 // civ: action awareness. mark failures and repeated identical failures.
                 if (execute_res) {
