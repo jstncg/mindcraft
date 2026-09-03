@@ -508,21 +508,13 @@ export class Agent {
         this.bot.on('messagestr', async (message, _, jsonMsg) => {
             if (jsonMsg.translate && jsonMsg.translate.startsWith('death') && message.startsWith(this.name)) {
                 console.log('Agent died: ', message);
-                if (this.bot.time.day >= 1) { // civ: permadeath after the first world day
-                    this.bot.chat(`ALL: ${message}. ${this.name} is gone for good.`);
-                    await this.history.add('system', `You died: '${message}'. Death is permanent. Goodbye.`);
-                    this.history.save();
-                    setTimeout(() => this.cleanKill(`${this.name} died permanently: ${message}`), 3000);
-                    return;
-                }
-                let death_pos = this.bot.entity.position;
-                this.memory_bank.rememberPlace('last_death_position', death_pos.x, death_pos.y, death_pos.z);
-                let death_pos_text = null;
-                if (death_pos) {
-                    death_pos_text = `x: ${death_pos.x.toFixed(2)}, y: ${death_pos.y.toFixed(2)}, z: ${death_pos.z.toFixed(2)}`;
-                }
-                let dimention = this.bot.game.dimension;
-                this.handleMessage('system', `You died at position ${death_pos_text || "unknown"} in the ${dimention} dimension with the final message: '${message}'. Your place of death is saved as 'last_death_position' if you want to return. Previous actions were stopped and you have respawned.`);
+                // civ: permadeath from the first second. Exit 0 - any other code makes
+                // AgentProcess restart the bot, which is why Bjorn came back at 18 HP.
+                this.bot.chat(`ALL: ${message}. ${this.name} is gone for good.`);
+                await this.history.add('system', `You died: '${message}'. Death is permanent. Goodbye.`);
+                this.history.save();
+                setTimeout(() => this.cleanKill(`${this.name} died permanently: ${message}`, 0), 3000);
+                return;
             }
         });
         this.bot.on('idle', () => {
