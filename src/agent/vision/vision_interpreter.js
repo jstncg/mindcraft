@@ -52,6 +52,20 @@ export class VisionInterpreter {
         return result + `Image analysis: "${await this.analyzeImage(filename)}"`;
     }
 
+    // civ: trigger-only self-check, fired after a build action completes. reuses current
+    // view (bot just finished building, no reason to move the camera) instead of polling
+    // on an interval, so cost is per-build not per-minute.
+    async selfCheck() {
+        if (!this.allow_vision || !this.agent.prompter.vision_model.sendVisionRequest) return null;
+        try {
+            const filename = await this.camera.capture();
+            return await this.analyzeImage(filename);
+        } catch (error) {
+            console.warn('Self-check vision error:', error);
+            return null;
+        }
+    }
+
     getCenterBlockInfo() {
         const bot = this.agent.bot;
         const maxDistance = 128; // Maximum distance to check for blocks

@@ -417,8 +417,15 @@ export const actionsList = [
             'message': { type: 'string', description: 'The message to send.' },
         },
         perform: async function (agent, player_name, message) {
+            if (player_name.toLowerCase() === 'all' || player_name.toLowerCase() === 'everyone') { // civ: talking to "all" = shout
+                agent.openChat(message.startsWith('ALL:') ? message : 'ALL: ' + message);
+                return 'You shouted to everyone. To talk to one person, use their name.';
+            }
             if (!convoManager.isOtherAgent(player_name))
                 return player_name + ' is not a bot, cannot start conversation.';
+            const _e = agent.bot.players[player_name]?.entity; // civ: must be within 32 blocks
+            if (!_e || _e.position.distanceTo(agent.bot.entity.position) > 32)
+                return player_name + ' is too far away to talk to. Go closer first.';
             if (convoManager.inConversation() && !convoManager.inConversation(player_name)) 
                 convoManager.forceEndCurrentConversation();
             else if (convoManager.inConversation(player_name))
