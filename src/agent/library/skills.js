@@ -3,6 +3,7 @@ import * as world from "./world.js";
 import pf from 'mineflayer-pathfinder';
 import Vec3 from 'vec3';
 import settings from "../../../settings.js";
+import { execFileSync } from 'child_process';
 
 const blockPlaceDelay = settings.block_place_delay == null ? 0 : settings.block_place_delay;
 const useDelay = blockPlaceDelay > 0;
@@ -1015,6 +1016,23 @@ const COOKED_FORM = {
 };
 
 
+// civ: the Minecraft server console, same channel run.sh/stop.sh already use.
+// ponytail: container name hardcoded to match run.sh; move to settings.js if the
+// sim ever runs against a server that is not this container.
+const RCON_CONTAINER = 'mc';
+
+function rcon(command) {
+    return execFileSync('docker', ['exec', RCON_CONTAINER, 'rcon-cli', command],
+        { encoding: 'utf8', timeout: 5000 }).trim();
+}
+
+// returns how many were actually taken off the giver
+function rconClear(username, itemType, num) {
+    const out = rcon(`clear ${username} minecraft:${itemType} ${num}`);
+    const m = out.match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+}
+
 export async function giveToPlayer(bot, itemType, username, num=1) {
     /**
      * Give one of the specified item to the specified player
@@ -1068,35 +1086,40 @@ export async function giveToPlayer(bot, itemType, username, num=1) {
     }
 
     await bot.lookAt(player.position);
-    if (await discard(bot, itemType, num)) {
-        let given = false;
-        bot.once('playerCollect', (collector, collected) => {
-            console.log(collected.name);
-            if (collector.username === username) {
-                log(bot, `${username} received ${itemType}.`);
-                given = true;
-            }
-        });
-        let start = Date.now();
-        while (!given && !bot.interrupt_code) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            if (given) {
-                return true;
-            }
-            // civ: 3s was not enough for a busy recipient to walk over
-            if (Date.now() - start > 10000) {
-                break;
-            }
-        }
-        // civ: the items are not gone, they are on the ground. say where, or
-        // the recipient hunts for an item they cannot find (see Ren, sim 4).
-        const p = bot.entity.position;
-        log(bot, `${username} did not pick up the ${itemType} in time. It is on the ground at x=${Math.round(p.x)} y=${Math.round(p.y)} z=${Math.round(p.z)}. Tell them to come collect it, or pick it back up yourself.`);
+
+    // civ: the bot still walks - that is the cost of cooperation and where theft
+    // and trust become observable. Only the transfer itself is atomic now. Tossing
+    // the stack on the ground and waiting for a playerCollect event failed 13 of
+    // 18 times in sim 4: the recipient was mid-pathfind and never looked down.
+    const held = bot.inventory.count(mc.getItemId(itemType), null);
+    if (held < num) {
+        log(bot, `You only have ${held} ${itemType}, not ${num}. Nothing was given.`);
         return false;
     }
-    log(bot, `Failed to give ${itemType} to ${username}, it was never received.`);
-    return false;
+    let removed;
+    try {
+        removed = rconClear(bot.username, itemType, num);
+    } catch (err) {
+        log(bot, `Could not hand over the ${itemType} (${err.message}). Nothing was given, you still have them.`);
+        return false;
+    }
+    if (removed < 1) {
+        log(bot, `Nothing was taken from your inventory. ${username} received nothing.`);
+        return false;
+    }
+    try {
+        rcon(`give ${username} minecraft:${itemType} ${removed}`);
+    } catch (err) {
+        // items are already out of our inventory - put them back rather than vanish them
+        try { rcon(`give ${bot.username} minecraft:${itemType} ${removed}`); } catch {}
+        log(bot, `Handover to ${username} failed (${err.message}). The ${itemType} is back in your inventory.`);
+        return false;
+    }
+    log(bot, `Gave ${removed} ${itemType} to ${username}. They have it now.`);
+    return true;
 }
+
+
 
 export async function goToGoal(bot, goal) {
     /**
