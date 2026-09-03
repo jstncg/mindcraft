@@ -1033,9 +1033,9 @@ export async function giveToPlayer(bot, itemType, username, num=1) {
         await moveAwayFromEntity(bot, player, 2);
         while (too_close && !bot.interrupt_code) {
             await new Promise(resolve => setTimeout(resolve, 500));
-            too_close = bot.entity.position.distanceTo(player.position) < 5;
+            too_close = bot.entity.position.distanceTo(player.position) < 3;
             if (too_close) {
-                await moveAwayFromEntity(bot, player, 5);
+                await moveAwayFromEntity(bot, player, 3);
             }
             if (Date.now() - start_moving_away > 3000) {
                 break;
@@ -1063,10 +1063,16 @@ export async function giveToPlayer(bot, itemType, username, num=1) {
             if (given) {
                 return true;
             }
-            if (Date.now() - start > 3000) {
+            // civ: 3s was not enough for a busy recipient to walk over
+            if (Date.now() - start > 10000) {
                 break;
             }
         }
+        // civ: the items are not gone, they are on the ground. say where, or
+        // the recipient hunts for an item they cannot find (see Ren, sim 4).
+        const p = bot.entity.position;
+        log(bot, `${username} did not pick up the ${itemType} in time. It is on the ground at x=${Math.round(p.x)} y=${Math.round(p.y)} z=${Math.round(p.z)}. Tell them to come collect it, or pick it back up yourself.`);
+        return false;
     }
     log(bot, `Failed to give ${itemType} to ${username}, it was never received.`);
     return false;
