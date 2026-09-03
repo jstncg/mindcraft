@@ -277,6 +277,23 @@ export class Agent {
         while (this._trail.length > 12) this._trail.shift();
     }
 
+    // civ: nothing enters the shared pool unchecked. Nina drowned verifying a barrier
+    // that was a lake, and eight bots had already written it down as fact. The critic is
+    // a separate call on purpose - an agent grading its own output rationalises.
+    async vet(claim) {
+        const trail = (this._trail || []).join('\n');
+        if (!trail) return { ok: false, why: 'you have not done anything that shows this' };
+        try {
+            const resp = await this.prompter.promptCritic(claim, trail);
+            if (!resp) return { ok: true, why: '' }; // no critic configured, do not block
+            const ok = /^\s*SUPPORTED/i.test(resp);
+            return { ok, why: resp.replace(/^\s*\w+\s*-?\s*/, '').trim().slice(0, 80) };
+        } catch (err) {
+            console.warn('critic failed:', err.message);
+            return { ok: true, why: '' }; // never let a critic outage silence a bot
+        }
+    }
+
     // civ: verbal RL. The weights are frozen, so the only policy we can update is text.
     // Fires on salient events only - a death, our own hunger crossing, a goal ending -
     // and costs one call. Rules land in $LESSONS, which the summariser cannot overwrite.
@@ -289,6 +306,11 @@ export class Agent {
             const resp = await this.prompter.promptReflection(event, this._trail.join('\n'));
             if (!resp || /^\s*NOTHING\s*$/i.test(resp)) return;
             for (const line of resp.split('\n').map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(Boolean).slice(0, 2)) {
+                const verdict = await this.vet(line);
+                if (!verdict.ok) {
+                    console.log(`${this.name} rejected own lesson: ${line} (${verdict.why})`);
+                    continue;
+                }
                 if (lessons.add(this.name, line, null, convoManager.getInGameAgents())) {
                     this.history.add('system', `You worked something out: ${line}`);
                     this.bot.chat(`ALL: LESSON: ${line}`);

@@ -1,4 +1,5 @@
 import { cosineSimilarity } from '../../utils/math.js';
+import * as learned from './learned.js';
 import { getSkillDocs } from './index.js';
 import { wordOverlapScore } from '../../utils/text.js';
 
@@ -11,7 +12,9 @@ export class SkillLibrary {
         this.always_show_skills = ['skills.placeBlock', 'skills.wait', 'skills.breakBlockAt']
     }
     async initSkillLibrary() {
-        const skillDocs = getSkillDocs();
+        // civ: learned programs are retrieved the same way as built-in skills - the
+        // embedding index here is already exactly Voyager's mechanism.
+        const skillDocs = getSkillDocs().concat(learned.docs());
         this.skill_docs = skillDocs;
         if (this.embedding_model) {
             try {
@@ -40,6 +43,15 @@ export class SkillLibrary {
     async getRelevantSkillDocs(message, select_num) {
         if(!message) // use filler message if none is provided
             message = '(no message)';
+        // civ: skills written after this bot started must still be findable, otherwise
+        // nothing compounds within a run. Embeds only what is genuinely new.
+        for (const doc of learned.docs()) {
+            if (doc in this.skill_docs_embeddings) continue;
+            this.skill_docs.push(doc);
+            this.skill_docs_embeddings[doc] = this.embedding_model
+                ? await this.embedding_model.embed(doc.split('\n').slice(0, 2).join(''))
+                : null;
+        }
         let skill_doc_similarities = [];
 
         if (select_num === -1) {

@@ -405,8 +405,11 @@ export const actionsList = [
             'text': { type: 'string', description: 'The lesson, one sentence. State the fact, not the story.' },
         },
         perform: async function (agent, text) {
+            const verdict = await agent.vet(text); // civ: same gate as reflection
+            if (!verdict.ok)
+                return `Not so fast - what you did does not show that: ${verdict.why}. Say only what you saw, or go and check.`;
             if (!lessons.add(agent.name, text, null, convoManager.getInGameAgents())) return 'You already knew that.';
-            agent.bot.chat(`LESSON: ${text}`);
+            agent.bot.chat(`ALL: LESSON: ${text}`);
             return `Learned: ${text}`;
         }
     },

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { makeCompartment, lockdown } from './library/lockdown.js';
 import * as skills from './library/skills.js';
 import * as world from './library/world.js';
+import * as learned from './library/learned.js';
 import { Vec3 } from 'vec3';
 import {ESLint} from "eslint";
 
@@ -89,6 +90,10 @@ export class Coder {
                 await executionModule.main(this.agent.bot);
 
                 const code_output = this.agent.actions.getBotOutputSummary();
+                // civ: it linted, it ran, it returned. That is the whole verification a
+                // program needs, so keep it where every bot can retrieve it.
+                const task = this.agent.actions.currentActionLabel || 'a task';
+                learned.save(task.replace(/^action:newAction\s*/, '').trim(), this._sanitizeCode(code), this.agent.name);
                 const summary = "Agent wrote this code: \n```" + this._sanitizeCode(code) + "```\nCode Output:\n" + code_output;
                 return summary;
             } catch (e) {

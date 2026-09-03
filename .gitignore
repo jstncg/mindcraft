@@ -34,3 +34,4 @@ run.log
 loop.log
 bots/positions.jsonl
 digest/
+learned_skills/

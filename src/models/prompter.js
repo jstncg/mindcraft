@@ -294,6 +294,18 @@ export class Prompter {
         return resp;
     }
 
+    // civ: Voyager's critic - a separate instantiation, because an agent grading its own
+    // output rationalises. Checks the claim against the trajectory, not against the world.
+    async promptCritic(claim, recent) {
+        await this.checkCooldown();
+        let prompt = this.profile.criticising;
+        if (!prompt) return null;
+        prompt = prompt.replaceAll('$CLAIM', claim).replaceAll('$RECENT', recent);
+        let resp = await this.chat_model.sendRequest([], prompt);
+        await this._saveLog(prompt, claim, resp, 'critic');
+        return resp;
+    }
+
     async promptMemSaving(to_summarize) {
         await this.checkCooldown();
         let prompt = this.profile.saving_memory;
