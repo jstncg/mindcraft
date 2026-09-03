@@ -198,8 +198,8 @@ export function createMindServer(host_public = false, port = 8080) {
         });
 
         socket.on('chat-message', (agentName, json) => {
-            if (!agent_connections[agentName]) {
-                console.warn(`Agent ${agentName} tried to send a message but is not logged in`);
+            if (!agent_connections[agentName]?.socket) {
+                console.warn(`Agent ${agentName} tried to send a message but is not connected`);
                 return;
             }
             console.log(`${curAgentName} sending message to ${agentName}: ${json.message}`);
@@ -210,7 +210,7 @@ export function createMindServer(host_public = false, port = 8080) {
             const agent = agent_connections[agentName];
             if (agent) {
                 agent.setSettings(settings);
-                agent.socket.emit('restart-agent');
+                agent.socket?.emit('restart-agent');
             }
         });
 
