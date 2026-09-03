@@ -1016,6 +1016,11 @@ export async function giveToPlayer(bot, itemType, username, num=1) {
         return false;
     }
     await goToPlayer(bot, username, 3);
+    player = bot.players[username]?.entity; // civ: refuse to throw items at someone out of reach; items on the ground get picked up by others
+    if (!player || bot.entity.position.distanceTo(player.position) > 4) {
+        log(bot, `Could not reach ${username} to hand over ${itemType}. Nothing was given. Ask them to come to you, or put it in the shared chest and tell them.`);
+        return false;
+    }
     // if we are 2 below the player
     log(bot, bot.entity.position.y, player.position.y);
     if (bot.entity.position.y < player.position.y - 1) {

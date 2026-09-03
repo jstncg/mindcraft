@@ -173,6 +173,8 @@ class ConversationManager {
 
         // check if any convo is active besides the sender
         if (this.inConversation() && !this.inConversation(sender)) {
+            // civ: do not lose the message. it lands in memory as an interruption; the current conversation continues.
+            agent.history.add('system', `${sender} tried to talk to you while you were busy with someone else. They said: "${received.message}". You can start a conversation with them when you are free.`);
             this.sendToBot(sender, `I'm talking to someone else, try again later. !endConversation("${sender}")`, false, false);
             this.endConversation(sender);
             return;

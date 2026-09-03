@@ -47,6 +47,12 @@ export const actionsList = [
                 }
             };
             await agent.actions.runAction('action:newAction', actionFn, {timeout: settings.code_timeout_mins});
+            // civ: self-check after building, not on a timer. only fires when code actually
+            // ran (skips lint/no-code/error returns), so cost tracks builds, not clock time.
+            if (settings.allow_vision && result && !/error|fail/i.test(result)) {
+                const check = await agent.vision_interpreter.selfCheck();
+                if (check) result += `\n[SELF-CHECK: you now see: "${check}". Compare against what you intended to build. If it's wrong, fix it.]`;
+            }
             return result;
         }
     },
