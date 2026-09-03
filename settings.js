@@ -11,7 +11,7 @@ const settings = {
     "base_profile": "survival", // survival, assistant, creative, or god_mode
     "profiles": ["./profiles/civ/Ada.json", "./profiles/civ/Bjorn.json", "./profiles/civ/Ren.json", "./profiles/civ/Sam.json", "./profiles/civ/Cole.json", "./profiles/civ/Ivy.json", "./profiles/civ/Ori.json", "./profiles/civ/Kai.json", "./profiles/civ/Elias.json", "./profiles/civ/Nina.json"],
 
-    "load_memory": false, // load memory from previous session
+    "load_memory": true, // load memory from previous session
     "init_message": "You have spawned in a shared world with 4 other bots and no humans. Spawn and the shared chest are at x=-336 y=75 z=80. Introduce yourself in chat, then set a long-term !goal that fits your personality and pursue it.", // sends to all on spawn
     "only_chat_with": [], // users that the bots listen to and send general messages to. if empty it will chat publicly
 

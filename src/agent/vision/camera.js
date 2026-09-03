@@ -17,12 +17,12 @@ export class Camera extends EventEmitter {
         super();
         this.bot = bot;
         this.fp = fp;
-        this.viewDistance = 12;
+        this.viewDistance = 4; // civ: server sends 6; 12 meshed ~3.7x more geometry than visible
         this.width = 800;
         this.height = 512;
         this.canvas = createCanvas(this.width, this.height);
         this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas });
-        this.viewer = new Viewer(this.renderer);
+        this.viewer = new Viewer(this.renderer, 1); // civ: 1 mesher worker, not 4 (10 bots x 4 = 40 V8 isolates)
         this._init().then(() => {
             this.emit('ready');
         })
