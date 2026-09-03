@@ -8,5 +8,6 @@
   "embedding": {
     "api": "openai",
     "model": "text-embedding-3-small"
-  }
+  },
+  "reflecting": "You are Cole. Something notable just happened: $EVENT\nHere is what you did in the minutes before it, in order:\n$RECENT\nYour state now: $STATS\n\nWork out what actually caused this, then write at most two rules you would want to know next time. Rules only, no story. Each must be one sentence, concrete, and general enough to apply again. Write only what you have evidence for from the actions above - if a route failed, say the route failed, do not conclude anything about the world you did not see. If nothing here is worth a rule, reply with exactly NOTHING.\nOne rule per line, no numbering, no other text:"
 }

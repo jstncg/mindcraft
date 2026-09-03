@@ -280,6 +280,20 @@ export class Prompter {
         return resp;
     }
 
+    // civ: one call, on a salient event only. Turns a trajectory into rules, which is
+    // the only kind of learning available when the weights are frozen.
+    async promptReflection(event, recent) {
+        await this.checkCooldown();
+        let prompt = this.profile.reflecting;
+        if (!prompt) return null;
+        prompt = prompt.replaceAll('$EVENT', event).replaceAll('$RECENT', recent);
+        prompt = await this.replaceStrings(prompt, []);
+        let resp = await this.chat_model.sendRequest([], prompt);
+        await this._saveLog(prompt, recent, resp, 'reflection');
+        if (resp?.includes('</think>')) resp = resp.split('</think>')[1];
+        return resp;
+    }
+
     async promptMemSaving(to_summarize) {
         await this.checkCooldown();
         let prompt = this.profile.saving_memory;

@@ -193,6 +193,7 @@ export class Agent {
                 this.history.add('system', `You hear ${username} ${shout ? 'shout to everyone' : 'say'}: ${message}`);
                 // civ: this is where lessons actually spread. The matcher used to sit in
                 // handleMessage, which shouts never reach, so propagation was always 0.
+                if (/is gone for good/.test(message)) this.reflect(`Someone just died: ${message}`);
                 const heard = message.match(/^(?:ALL: ?)?LESSON: (.+)$/);
                 if (heard && lessons.add(this.name, heard[1], username, convoManager.getInGameAgents()))
                     this.history.add('system', `You will remember that ${username} said so.`);
@@ -267,6 +268,37 @@ export class Agent {
         this.bot.collectBlock.cancelTask();
         this.bot.pathfinder.stop();
         this.bot.pvp.stop();
+    }
+
+    // civ: the last handful of things we did, so a reflection has something to assign
+    // credit to. Trimmed hard - this goes into a prompt.
+    recordStep(text) {
+        (this._trail = this._trail || []).push(String(text).replace(/\s+/g, ' ').slice(0, 160));
+        while (this._trail.length > 12) this._trail.shift();
+    }
+
+    // civ: verbal RL. The weights are frozen, so the only policy we can update is text.
+    // Fires on salient events only - a death, our own hunger crossing, a goal ending -
+    // and costs one call. Rules land in $LESSONS, which the summariser cannot overwrite.
+    async reflect(event) {
+        if (this._reflecting || !(this._trail || []).length) return;
+        if (Date.now() - (this._reflectedAt || 0) < 120000) return; // at most every 2 min
+        this._reflecting = true;
+        this._reflectedAt = Date.now();
+        try {
+            const resp = await this.prompter.promptReflection(event, this._trail.join('\n'));
+            if (!resp || /^\s*NOTHING\s*$/i.test(resp)) return;
+            for (const line of resp.split('\n').map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(Boolean).slice(0, 2)) {
+                if (lessons.add(this.name, line, null, convoManager.getInGameAgents())) {
+                    this.history.add('system', `You worked something out: ${line}`);
+                    this.bot.chat(`ALL: LESSON: ${line}`);
+                }
+            }
+        } catch (err) {
+            console.warn('reflection failed:', err.message);
+        } finally {
+            this._reflecting = false;
+        }
     }
 
     clearBotLogs() {
@@ -393,6 +425,7 @@ export class Agent {
                 let execute_res = await executeCommand(this, res);
 
                 console.log('Agent executed:', command_name, 'and got:', execute_res);
+                this.recordStep(`${command_name} -> ${execute_res ?? 'no output'}`); // civ: trajectory for reflection
                 // civ: action awareness. mark failures and repeated identical failures.
                 if (execute_res) {
                     const failed = /invalid|fail|could not|couldn't|cannot|can't|no path|not found|timed out|unable|too far|don't have|do not have|not enough|no .* nearby/i.test(execute_res);
@@ -503,8 +536,10 @@ export class Agent {
             // civ: below 6 you stop regenerating and start starving. Warn once per
             // crossing, while there is still time to walk rather than panic.
             const hungry = this.bot.food < 6;
-            if (hungry && !this._wasHungry)
+            if (hungry && !this._wasHungry) {
                 this.history.add('system', `Your hunger is ${this.bot.food}/20. Below 6 you stop healing and begin to starve. Eat now, or go and get food while you still can.`);
+                this.reflect(`You let yourself get down to ${this.bot.food}/20 hunger and are starting to starve.`);
+            }
             this._wasHungry = hungry;
         });
         // Logging callbacks
