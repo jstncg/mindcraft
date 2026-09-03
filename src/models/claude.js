@@ -13,6 +13,7 @@ export class Claude {
             config.baseURL = url;
         
         config.apiKey = getKey('ANTHROPIC_API_KEY');
+        config.defaultHeaders = { 'anthropic-workspace-id': 'wrkspc_01NSWFGYX5DnGBAanjkuu2xG' }; // civ: identity-linked key
 
         this.anthropic = new Anthropic(config);
     }
