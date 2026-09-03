@@ -189,8 +189,14 @@ export class Agent {
             // civ: hear other bots speaking aloud within 32 blocks; reply on next cycle, not immediately
             const e = this.bot.players[username]?.entity;
             let shout = message.startsWith('ALL:'); // civ: 'ALL:' prefix is heard by everyone, else 32 blocks
-            if (convoManager.isOtherAgent(username) && (shout || (e && e.position.distanceTo(this.bot.entity.position) <= 32)))
+            if (convoManager.isOtherAgent(username) && (shout || (e && e.position.distanceTo(this.bot.entity.position) <= 32))) {
                 this.history.add('system', `You hear ${username} ${shout ? 'shout to everyone' : 'say'}: ${message}`);
+                // civ: this is where lessons actually spread. The matcher used to sit in
+                // handleMessage, which shouts never reach, so propagation was always 0.
+                const heard = message.match(/^(?:ALL: ?)?LESSON: (.+)$/);
+                if (heard && lessons.add(this.name, heard[1], username, convoManager.getInGameAgents()))
+                    this.history.add('system', `You will remember that ${username} said so.`);
+            }
         });
         // civ: pathfinder avoids water. every movement set goes through setMovements; default movements too.
         const _setMov = this.bot.pathfinder.setMovements.bind(this.bot.pathfinder);
@@ -280,13 +286,6 @@ export class Agent {
         await this.checkTaskDone();
         if (!source || !message) {
             console.warn('Received empty message from', source);
-            return false;
-        }
-
-        // civ: lessons spread. Anyone in earshot of a LESSON: shout keeps it.
-        const heard = message.match(/^(?:\w+: )?LESSON: (.+)$/);
-        if (heard && source !== this.name && source !== 'system') {
-            lessons.add(this.name, heard[1], source);
             return false;
         }
 

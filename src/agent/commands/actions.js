@@ -393,7 +393,7 @@ export const actionsList = [
             'text': { type: 'string', description: 'The lesson, one sentence. State the fact, not the story.' },
         },
         perform: async function (agent, text) {
-            if (!lessons.add(agent.name, text)) return 'You already knew that.';
+            if (!lessons.add(agent.name, text, null, convoManager.getInGameAgents())) return 'You already knew that.';
             agent.bot.chat(`LESSON: ${text}`);
             return `Learned: ${text}`;
         }
